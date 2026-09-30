@@ -1,26 +1,157 @@
 @import "tailwindcss";
 
+@theme {
+  --color-paper: #f1ece2;
+  --color-paper-2: #e8e1d3;
+  --color-paper-3: #ddd4c2;
+  --color-graphite: #202326;
+  --color-graphite-2: #3b3f43;
+  --color-graphite-3: #6b6f72;
+  --color-fir: #2f4b3c;
+  --color-fir-2: #8fae93;
+  --color-wood: #b9824f;
+  --color-laser: #e5361f;
+
+  --font-display: var(--font-newsreader), Georgia, serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, Menlo, monospace;
+  --font-body: var(--font-geist), system-ui, sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --rule: rgba(32, 35, 38, 0.2);
+  --rule-strong: rgba(32, 35, 38, 0.55);
+  /* Paper grain: fine turbulence, multiplied onto the paper colour. */
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.13  0 0 0 0 0.12  0 0 0 0 0.1  0 0 0 0.55 0'/></filter><rect width='240' height='240' filter='url(%23n)' opacity='0.42'/></svg>");
+  /* Very low-frequency mottling: the paper is never perfectly flat in daylight. */
+  --mottle: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='0.0078125' numOctaves='2' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.42  0 0 0 0 0.36  0 0 0 0 0.26  0 0 0 0.16 0'/></filter><rect width='512' height='512' filter='url(%23m)'/></svg>");
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-graphite);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+::selection {
+  background: rgba(47, 75, 60, 0.22);
+}
+
+@layer components {
+/* Paper: colour + grain + faint fibres. Static — renders with the first paint. */
+.paper {
+  background-color: var(--color-paper);
+  background-image: var(--grain), var(--mottle);
+  background-size: 240px 240px, 512px 512px;
+}
+
+.paper-dark {
+  background-color: var(--color-graphite);
+  background-image: var(--grain);
+  background-size: 240px 240px;
+}
+
+/* Every number and label: IBM Plex Mono, uppercase. */
+.mono {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 0.98;
+  /* No one-word widows in a headline. (balance ignores lines after a <br>; pretty doesn't.) */
+  text-wrap: pretty;
+}
+
+.display em {
+  font-style: italic;
+  letter-spacing: -0.012em;
+}
+}
+
+/* One-shot plotter stroke: pathLength=1, dash hidden → drawn. */
+@keyframes plot {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.plot {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+  animation: plot var(--dur, 0.6s) cubic-bezier(0.45, 0.05, 0.3, 1) var(--delay, 0s) forwards;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.caret {
+  animation: blink 0.9s steps(1) infinite;
+}
+
+@layer components {
+/* Architectural slash tick used on dimension strings. */
+.tick {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 1.25px;
+  background: currentColor;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+/* A print developing from the bottom up: a soft mask edge sweeps over the drawing. */
+.develop {
+  -webkit-mask-image: linear-gradient(to top, #000 42%, transparent 58%);
+  mask-image: linear-gradient(to top, #000 42%, transparent 58%);
+  -webkit-mask-size: 100% 250%;
+  mask-size: 100% 250%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 0 0%;
+  mask-position: 0 0%;
+  transition:
+    mask-position 2.1s cubic-bezier(0.55, 0, 0.25, 1),
+    -webkit-mask-position 2.1s cubic-bezier(0.55, 0, 0.25, 1);
+}
+
+.develop.is-developed {
+  -webkit-mask-position: 0 100%;
+  mask-position: 0 100%;
+}
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-fir);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .plot {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .caret {
+    animation: none;
+  }
 }
